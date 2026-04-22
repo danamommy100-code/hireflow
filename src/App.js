@@ -274,21 +274,18 @@ export default function App() {
                 </div>
               ))}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  이력서 / 포트폴리오 첨부
-                  <span className="ml-2 text-red-500 font-bold text-xs">💡 (파일명 꼭 영문으로 기입)</span>
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">이력서 / 포트폴리오 첨부 <span className="text-red-500 font-bold text-xs">💡 (파일명 꼭 영문으로 기입)</span></label>
                 <input type="file" accept=".pdf,.doc,.docx,.zip"
                   onChange={e => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    if (/[^\x00-\x7F]/.test(file.name)) {
-                      alert("⚠️ 파일명을 영문으로 해주세요.\n예: resume.docx");
-                      e.target.value = "";
-                      return;
-                    }
-                    setUploadedFile(file);
-                  }}
+  const file = e.target.files[0];
+  if (!file) return;
+  if (/[^\x00-\x7F]/.test(file.name)) {
+    alert("⚠️ 파일명을 영문으로 해주세요.\n예: resume.docx");
+    e.target.value = "";
+    return;
+  }
+  setUploadedFile(file);
+}}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400" />
                 {uploadedFile && <p className="text-xs text-indigo-600 mt-1">📎 {uploadedFile.name}</p>}
                 <p className="text-xs text-gray-400 mt-1">PDF, DOC, DOCX, ZIP · 최대 50MB</p>
