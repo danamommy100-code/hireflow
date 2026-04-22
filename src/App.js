@@ -53,6 +53,7 @@ export default function App() {
   const [editingJob, setEditingJob] = useState(null);
   const [isNewJob, setIsNewJob] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleteApplicantConfirm, setDeleteApplicantConfirm] = useState(null);
 
   const filteredJobs = jobs.filter(j => deptFilter === "전체" || j.dept === deptFilter);
   const getApplicantsByStage = (stage, jId) =>
@@ -81,6 +82,24 @@ export default function App() {
     setSelectedApplicant(p => ({ ...p, starred: !p.starred }));
   };
 
+  const deleteApplicant = (id) => {
+    setApplicants(p => p.filter(a => a.id !== id));
+    setDeleteApplicantConfirm(null);
+    setSelectedApplicant(null);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (/[^\x00-\x7F]/.test(file.name)) {
+      alert("⚠️ 파일명을 영문으로 해주세요.\n예: resume.docx");
+      e.target.value = "";
+      setUploadedFile(null);
+      return;
+    }
+    setUploadedFile(file);
+  };
+
   const submitApp = async () => {
     if (!form.name || !form.email || !form.phone) return;
     setUploading(true);
@@ -89,18 +108,10 @@ export default function App() {
       if (uploadedFile) {
         const fileName = `${Date.now()}_${uploadedFile.name}`;
         const { error } = await supabase.storage.from("resumes").upload(fileName, uploadedFile);
-        if (!error) {
-          fileUrl = `${process.env.REACT_APP_SUPABASE_URL}/storage/v1/object/public/resumes/${fileName}`;
-        }
+        if (!error) fileUrl = `${process.env.REACT_APP_SUPABASE_URL}/storage/v1/object/public/resumes/${fileName}`;
       }
-    } catch (e) {
-      console.error("파일 업로드 오류:", e);
-    }
-    setApplicants(p => [...p, {
-      id: Date.now(), jobId: activeJob.id, name: form.name, email: form.email,
-      phone: form.phone, stage: 0, score: 0, memo: "", appliedAt: new Date().toISOString().slice(0, 10),
-      answers: form.answers, comments: [], starred: false, fileUrl
-    }]);
+    } catch (e) { console.error("파일 업로드 오류:", e); }
+    setApplicants(p => [...p, { id: Date.now(), jobId: activeJob.id, name: form.name, email: form.email, phone: form.phone, stage: 0, score: 0, memo: "", appliedAt: new Date().toISOString().slice(0, 10), answers: form.answers, comments: [], starred: false, fileUrl }]);
     setUploading(false);
     setSubmitted(true);
   };
@@ -122,11 +133,8 @@ export default function App() {
 
   const saveJob = () => {
     if (!editingJob.title || !editingJob.deadline) return;
-    if (isNewJob) {
-      setJobs(p => [...p, { ...editingJob, id: Date.now() }]);
-    } else {
-      setJobs(p => p.map(j => j.id === editingJob.id ? editingJob : j));
-    }
+    if (isNewJob) setJobs(p => [...p, { ...editingJob, id: Date.now() }]);
+    else setJobs(p => p.map(j => j.id === editingJob.id ? editingJob : j));
     setEditingJob(null); setIsNewJob(false);
   };
 
@@ -134,12 +142,6 @@ export default function App() {
     setJobs(p => p.filter(j => j.id !== id));
     setApplicants(p => p.filter(a => a.jobId !== id));
     setDeleteConfirm(null);
-  };
-
-  const deleteApplicant = (id) => {
-    setApplicants(p => p.filter(a => a.id !== id));
-    setDeleteApplicantConfirm(null);
-    setSelectedApplicant(null);
   };
 
   const NavBar = () => (
@@ -274,18 +276,11 @@ export default function App() {
                 </div>
               ))}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">이력서 / 포트폴리오 첨부 <span className="text-red-500 font-bold text-xs">💡 (파일명 꼭 영문으로 기입)</span></label>
-                <input type="file" accept=".pdf,.doc,.docx,.zip"
-                  onChange={e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  if (/[^\x00-\x7F]/.test(file.name)) {
-    alert("⚠️ 파일명을 영문으로 해주세요.\n예: resume.docx");
-    e.target.value = "";
-    return;
-  }
-  setUploadedFile(file);
-}}
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  이력서 / 포트폴리오 첨부
+                  <span className="ml-1 text-red-500 font-bold text-xs"> 💡 (파일명 꼭 영문으로 기입)</span>
+                </label>
+                <input type="file" accept=".pdf,.doc,.docx,.zip" onChange={handleFileChange}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400" />
                 {uploadedFile && <p className="text-xs text-indigo-600 mt-1">📎 {uploadedFile.name}</p>}
                 <p className="text-xs text-gray-400 mt-1">PDF, DOC, DOCX, ZIP · 최대 50MB</p>
@@ -396,6 +391,21 @@ export default function App() {
           </div>
         )}
 
+        {/* 공고 삭제 확인 모달 */}
+        {deleteConfirm && (
+          <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
+              <div className="text-4xl mb-3">⚠️</div>
+              <h3 className="font-bold text-gray-900 mb-2">공고를 삭제할까요?</h3>
+              <p className="text-sm text-gray-500 mb-5">해당 공고와 관련된 지원자 데이터도 함께 삭제됩니다.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">취소</button>
+                <button onClick={() => { deleteJob(deleteConfirm); setEditingJob(null); }} className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700">삭제</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 지원자 삭제 확인 모달 */}
         {deleteApplicantConfirm && (
           <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4">
@@ -406,19 +416,6 @@ export default function App() {
               <div className="flex gap-3">
                 <button onClick={() => setDeleteApplicantConfirm(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">취소</button>
                 <button onClick={() => deleteApplicant(deleteApplicantConfirm)} className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700">삭제</button>
-              </div>
-            </div>
-          </div>
-        )}
-        {deleteConfirm && (
-          <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
-              <div className="text-4xl mb-3">⚠️</div>
-              <h3 className="font-bold text-gray-900 mb-2">공고를 삭제할까요?</h3>
-              <p className="text-sm text-gray-500 mb-5">해당 공고와 관련된 지원자 데이터도 함께 삭제됩니다.</p>
-              <div className="flex gap-3">
-                <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">취소</button>
-                <button onClick={() => { deleteJob(deleteConfirm); setEditingJob(null); }} className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700">삭제</button>
               </div>
             </div>
           </div>
@@ -440,6 +437,7 @@ export default function App() {
           </div>
 
           <div className="flex-1 p-6 overflow-auto">
+
             {/* 칸반 보드 */}
             {adminTab === "kanban" && (
               <div>
@@ -482,6 +480,7 @@ export default function App() {
                   ))}
                 </div>
 
+                {/* 지원자 상세 패널 */}
                 {selectedApplicant && (
                   <div className="fixed inset-0 bg-black/30 z-50 flex justify-end" onClick={() => setSelectedApplicant(null)}>
                     <div className="bg-white w-full max-w-md h-full overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -549,9 +548,6 @@ export default function App() {
                             <button onClick={() => addComment(selectedApplicant.id)} className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm">전송</button>
                           </div>
                         </div>
-                        <div className="pt-2 border-t border-gray-100 mt-2">
-  <button onClick={() => setDeleteApplicantConfirm(selectedApplicant.id)} className="w-full py-2.5 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition text-sm">🗑 지원자 삭제</button>
-</div>
                         <div className="pt-2 border-t border-gray-100">
                           <button onClick={() => setDeleteApplicantConfirm(selectedApplicant.id)} className="w-full py-2.5 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition text-sm">🗑 지원자 삭제</button>
                         </div>
