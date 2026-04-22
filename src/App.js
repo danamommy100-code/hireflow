@@ -1,4 +1,10 @@
 import { useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.REACT_APP_SUPABASE_URL || "",
+  process.env.REACT_APP_SUPABASE_ANON_KEY || ""
+);
 
 const JOBS_INIT = [
   { id: 1, title: "프론트엔드 개발자", dept: "개발", type: "정규직", loc: "서울", deadline: "2026-05-15", desc: "React/TypeScript 기반 서비스 개발", requirements: ["React 3년 이상", "TypeScript 필수", "팀 협업 경험"], benefits: ["자율 출퇴근", "점심 제공", "주 1회 재택"], questions: ["포트폴리오 링크를 공유해주세요.", "희망 연봉을 입력해주세요."], open: true },
@@ -8,11 +14,11 @@ const JOBS_INIT = [
 ];
 
 const INIT_APPLICANTS = [
-  { id: 1, jobId: 1, name: "김지현", email: "jihyun@email.com", phone: "010-1234-5678", stage: 1, score: 4, memo: "React 경력 5년, 포트폴리오 우수", appliedAt: "2026-04-10", answers: ["github.com/jihyun", "6000만원"], comments: [{ author: "박팀장", text: "포트폴리오 인상적입니다!", time: "04-11 10:20" }], starred: true },
-  { id: 2, jobId: 1, name: "이민준", email: "minjun@email.com", phone: "010-9876-5432", stage: 0, score: 3, memo: "신입이지만 사이드 프로젝트 다수", appliedAt: "2026-04-12", answers: ["github.com/minjun", "4500만원"], comments: [], starred: false },
-  { id: 3, jobId: 2, name: "박서연", email: "seoyeon@email.com", phone: "010-5555-4444", stage: 2, score: 5, memo: "AWS 자격증 보유, 스타트업 경험 풍부", appliedAt: "2026-04-08", answers: ["핀테크 스타트업 3년, MSA 전환 경험"], comments: [{ author: "최CTO", text: "기술 스택 완벽합니다", time: "04-09 14:00" }], starred: true },
-  { id: 4, jobId: 3, name: "최도현", email: "dohyun@email.com", phone: "010-7777-8888", stage: 3, score: 4, memo: "브랜드 디자인 강점, Figma 능숙", appliedAt: "2026-04-05", answers: ["figma.com/portfolio/dohyun"], comments: [], starred: false },
-  { id: 5, jobId: 2, name: "정수빈", email: "subin@email.com", phone: "010-2222-3333", stage: 0, score: 2, memo: "", appliedAt: "2026-04-15", answers: ["Python Django 2년 경험"], comments: [], starred: false },
+  { id: 1, jobId: 1, name: "김지현", email: "jihyun@email.com", phone: "010-1234-5678", stage: 1, score: 4, memo: "React 경력 5년, 포트폴리오 우수", appliedAt: "2026-04-10", answers: ["github.com/jihyun", "6000만원"], comments: [{ author: "박팀장", text: "포트폴리오 인상적입니다!", time: "04-11 10:20" }], starred: true, fileUrl: "" },
+  { id: 2, jobId: 1, name: "이민준", email: "minjun@email.com", phone: "010-9876-5432", stage: 0, score: 3, memo: "신입이지만 사이드 프로젝트 다수", appliedAt: "2026-04-12", answers: ["github.com/minjun", "4500만원"], comments: [], starred: false, fileUrl: "" },
+  { id: 3, jobId: 2, name: "박서연", email: "seoyeon@email.com", phone: "010-5555-4444", stage: 2, score: 5, memo: "AWS 자격증 보유, 스타트업 경험 풍부", appliedAt: "2026-04-08", answers: ["핀테크 스타트업 3년, MSA 전환 경험"], comments: [{ author: "최CTO", text: "기술 스택 완벽합니다", time: "04-09 14:00" }], starred: true, fileUrl: "" },
+  { id: 4, jobId: 3, name: "최도현", email: "dohyun@email.com", phone: "010-7777-8888", stage: 3, score: 4, memo: "브랜드 디자인 강점, Figma 능숙", appliedAt: "2026-04-05", answers: ["figma.com/portfolio/dohyun"], comments: [], starred: false, fileUrl: "" },
+  { id: 5, jobId: 2, name: "정수빈", email: "subin@email.com", phone: "010-2222-3333", stage: 0, score: 2, memo: "", appliedAt: "2026-04-15", answers: ["Python Django 2년 경험"], comments: [], starred: false, fileUrl: "" },
 ];
 
 const STAGES = ["서류심사", "1차면접", "2차면접", "처우협의", "최종합격"];
@@ -20,7 +26,6 @@ const STAGE_COLORS = ["bg-gray-100 text-gray-700", "bg-blue-100 text-blue-700", 
 const DEPTS = ["전체", "개발", "디자인", "마케팅"];
 const DEPT_OPTS = ["개발", "디자인", "마케팅", "기획", "운영"];
 const ADMIN_PW = "apple100";
-
 const BLANK_JOB = { title: "", dept: "개발", type: "정규직", loc: "서울", deadline: "", desc: "", requirements: [""], benefits: [""], questions: [""], open: true };
 
 export default function App() {
@@ -32,6 +37,8 @@ export default function App() {
   const [adminTab, setAdminTab] = useState("kanban");
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [form, setForm] = useState({ name: "", email: "", phone: "", answers: [] });
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [dragging, setDragging] = useState(null);
@@ -40,19 +47,14 @@ export default function App() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSummary, setAiSummary] = useState("");
   const [jobFilter, setJobFilter] = useState("all");
-
-  // 관리자 로그인
   const [adminAuth, setAdminAuth] = useState(false);
   const [pwInput, setPwInput] = useState("");
   const [pwError, setPwError] = useState(false);
-
-  // 공고 편집
-  const [editingJob, setEditingJob] = useState(null); // null | job object
+  const [editingJob, setEditingJob] = useState(null);
   const [isNewJob, setIsNewJob] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(null); // job id
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const filteredJobs = jobs.filter(j => deptFilter === "전체" || j.dept === deptFilter);
-
   const getApplicantsByStage = (stage, jId) =>
     applicants.filter(a => a.stage === stage && (jId === "all" || a.jobId === parseInt(jId)));
 
@@ -79,9 +81,27 @@ export default function App() {
     setSelectedApplicant(p => ({ ...p, starred: !p.starred }));
   };
 
-  const submitApp = () => {
+  const submitApp = async () => {
     if (!form.name || !form.email || !form.phone) return;
-    setApplicants(p => [...p, { id: Date.now(), jobId: activeJob.id, name: form.name, email: form.email, phone: form.phone, stage: 0, score: 0, memo: "", appliedAt: new Date().toISOString().slice(0, 10), answers: form.answers, comments: [], starred: false }]);
+    setUploading(true);
+    let fileUrl = "";
+    try {
+      if (uploadedFile) {
+        const fileName = `${Date.now()}_${uploadedFile.name}`;
+        const { error } = await supabase.storage.from("resumes").upload(fileName, uploadedFile);
+        if (!error) {
+          fileUrl = `${process.env.REACT_APP_SUPABASE_URL}/storage/v1/object/public/resumes/${fileName}`;
+        }
+      }
+    } catch (e) {
+      console.error("파일 업로드 오류:", e);
+    }
+    setApplicants(p => [...p, {
+      id: Date.now(), jobId: activeJob.id, name: form.name, email: form.email,
+      phone: form.phone, stage: 0, score: 0, memo: "", appliedAt: new Date().toISOString().slice(0, 10),
+      answers: form.answers, comments: [], starred: false, fileUrl
+    }]);
+    setUploading(false);
     setSubmitted(true);
   };
 
@@ -100,7 +120,6 @@ export default function App() {
     setAiLoading(false);
   };
 
-  // 공고 저장
   const saveJob = () => {
     if (!editingJob.title || !editingJob.deadline) return;
     if (isNewJob) {
@@ -117,21 +136,20 @@ export default function App() {
     setDeleteConfirm(null);
   };
 
-  // ── 공통 NavBar ──
   const NavBar = () => (
     <nav className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
       <div className="flex items-center gap-2 cursor-pointer" onClick={() => { setView("jobs"); setSubmitted(false); }}>
-        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">H</div>
+        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">A</div>
         <span className="font-bold text-gray-800 text-lg">알레르망채용</span>
       </div>
       <div className="flex gap-2">
-        <button onClick={() => { setView("jobs"); setSubmitted(false); }} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${view !== "admin" ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-100"}`}>채용공고</button>
+        <button onClick={() => { setView("jobs"); setSubmitted(false); }} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${view !== "admin" && view !== "adminLogin" ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-100"}`}>채용공고</button>
         <button onClick={() => { if (adminAuth) { setView("admin"); setAdminTab("kanban"); } else setView("adminLogin"); }} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${view === "admin" || view === "adminLogin" ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}>관리자</button>
       </div>
     </nav>
   );
 
-  // ── 관리자 로그인 ──
+  // 관리자 로그인
   if (view === "adminLogin") return (
     <div className="min-h-screen bg-gray-50">
       <NavBar />
@@ -145,35 +163,21 @@ export default function App() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
-              <input
-                type="password"
-                value={pwInput}
-                onChange={e => { setPwInput(e.target.value); setPwError(false); }}
-                onKeyDown={e => {
-                  if (e.key === "Enter") {
-                    if (pwInput === ADMIN_PW) { setAdminAuth(true); setView("admin"); setAdminTab("kanban"); setPwInput(""); setPwError(false); }
-                    else setPwError(true);
-                  }
-                }}
+              <input type="password" value={pwInput} onChange={e => { setPwInput(e.target.value); setPwError(false); }}
+                onKeyDown={e => { if (e.key === "Enter") { if (pwInput === ADMIN_PW) { setAdminAuth(true); setView("admin"); setPwInput(""); } else setPwError(true); } }}
                 placeholder="비밀번호를 입력하세요"
-                className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none ${pwError ? "border-red-400 bg-red-50" : "border-gray-200 focus:border-indigo-400"}`}
-              />
+                className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none ${pwError ? "border-red-400 bg-red-50" : "border-gray-200 focus:border-indigo-400"}`} />
               {pwError && <p className="text-xs text-red-500 mt-1">비밀번호가 올바르지 않습니다.</p>}
             </div>
-            <button
-              onClick={() => {
-                if (pwInput === ADMIN_PW) { setAdminAuth(true); setView("admin"); setAdminTab("kanban"); setPwInput(""); setPwError(false); }
-                else setPwError(true);
-              }}
-              className="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition"
-            >로그인</button>
+            <button onClick={() => { if (pwInput === ADMIN_PW) { setAdminAuth(true); setView("admin"); setPwInput(""); } else setPwError(true); }}
+              className="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">로그인</button>
           </div>
         </div>
       </div>
     </div>
   );
 
-  // ── 채용 공고 리스트 ──
+  // 채용공고 리스트
   if (view === "jobs") return (
     <div className="min-h-screen bg-gray-50">
       <NavBar />
@@ -207,7 +211,7 @@ export default function App() {
     </div>
   );
 
-  // ── 공고 상세 ──
+  // 공고 상세
   if (view === "detail") return (
     <div className="min-h-screen bg-gray-50">
       <NavBar />
@@ -223,13 +227,17 @@ export default function App() {
             <div><h3 className="font-bold text-gray-800 mb-2">✅ 자격 요건</h3><ul className="space-y-1">{activeJob?.requirements.filter(Boolean).map((r, i) => <li key={i} className="text-sm text-gray-600 flex gap-2"><span className="text-indigo-400">•</span>{r}</li>)}</ul></div>
             <div><h3 className="font-bold text-gray-800 mb-2">🎁 복리후생</h3><div className="flex gap-2 flex-wrap">{activeJob?.benefits.filter(Boolean).map((b, i) => <span key={i} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">{b}</span>)}</div></div>
           </div>
-          <button onClick={() => { setForm({ name: "", email: "", phone: "", answers: activeJob?.questions.map(() => "") }); setView("apply"); setSubmitted(false); }} disabled={!activeJob?.open} className={`w-full mt-6 py-3 rounded-xl font-bold text-white transition ${activeJob?.open ? "bg-indigo-600 hover:bg-indigo-700" : "bg-gray-300 cursor-not-allowed"}`}>{activeJob?.open ? "지원하기" : "마감된 공고입니다"}</button>
+          <button onClick={() => { setForm({ name: "", email: "", phone: "", answers: activeJob?.questions.map(() => "") }); setUploadedFile(null); setView("apply"); setSubmitted(false); }}
+            disabled={!activeJob?.open}
+            className={`w-full mt-6 py-3 rounded-xl font-bold text-white transition ${activeJob?.open ? "bg-indigo-600 hover:bg-indigo-700" : "bg-gray-300 cursor-not-allowed"}`}>
+            {activeJob?.open ? "지원하기" : "마감된 공고입니다"}
+          </button>
         </div>
       </div>
     </div>
   );
 
-  // ── 지원서 ──
+  // 지원서
   if (view === "apply") return (
     <div className="min-h-screen bg-gray-50">
       <NavBar />
@@ -259,9 +267,22 @@ export default function App() {
                   <textarea value={form.answers[i] || ""} onChange={e => { const ans = [...form.answers]; ans[i] = e.target.value; setForm(p => ({ ...p, answers: ans })); }} rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 resize-none" />
                 </div>
               ))}
-              <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500">📎 파일 업로드(이력서/포트폴리오)는 실제 환경에서 지원됩니다.</div>
-              <label className="flex items-start gap-2 text-xs text-gray-500 cursor-pointer"><input type="checkbox" className="mt-0.5" /><span>개인정보 수집·이용에 동의합니다. (채용 목적으로만 활용되며, 채용 종료 후 즉시 파기됩니다.)</span></label>
-              <button onClick={submitApp} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">지원서 제출</button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">이력서 / 포트폴리오 첨부</label>
+                <input type="file" accept=".pdf,.doc,.docx,.zip"
+                  onChange={e => setUploadedFile(e.target.files[0])}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400" />
+                {uploadedFile && <p className="text-xs text-indigo-600 mt-1">📎 {uploadedFile.name}</p>}
+                <p className="text-xs text-gray-400 mt-1">PDF, DOC, DOCX, ZIP · 최대 50MB</p>
+              </div>
+              <label className="flex items-start gap-2 text-xs text-gray-500 cursor-pointer">
+                <input type="checkbox" className="mt-0.5" />
+                <span>개인정보 수집·이용에 동의합니다. (채용 목적으로만 활용되며, 채용 종료 후 즉시 파기됩니다.)</span>
+              </label>
+              <button onClick={submitApp} disabled={uploading}
+                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition disabled:opacity-50">
+                {uploading ? "업로드 중..." : "지원서 제출"}
+              </button>
             </div>
           </div>
         )}
@@ -269,10 +290,9 @@ export default function App() {
     </div>
   );
 
-  // ── 관리자 대시보드 ──
+  // 관리자 대시보드
   if (view === "admin") {
     const filteredApplicants = jobFilter === "all" ? applicants : applicants.filter(a => a.jobId === parseInt(jobFilter));
-
     return (
       <div className="min-h-screen bg-gray-50">
         <NavBar />
@@ -318,7 +338,6 @@ export default function App() {
                   <label className="block text-xs font-semibold text-gray-500 mb-1">업무 내용</label>
                   <textarea value={editingJob.desc} onChange={e => setEditingJob(p => ({ ...p, desc: e.target.value }))} rows={3} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 resize-none" />
                 </div>
-                {/* 자격 요건 */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1">자격 요건</label>
                   {editingJob.requirements.map((r, i) => (
@@ -329,7 +348,6 @@ export default function App() {
                   ))}
                   <button onClick={() => setEditingJob(p => ({ ...p, requirements: [...p.requirements, ""] }))} className="text-xs text-indigo-600 hover:underline mt-1">+ 추가</button>
                 </div>
-                {/* 복리후생 */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1">복리후생</label>
                   {editingJob.benefits.map((b, i) => (
@@ -340,7 +358,6 @@ export default function App() {
                   ))}
                   <button onClick={() => setEditingJob(p => ({ ...p, benefits: [...p.benefits, ""] }))} className="text-xs text-indigo-600 hover:underline mt-1">+ 추가</button>
                 </div>
-                {/* 커스텀 질문 */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1">추가 질문</label>
                   {editingJob.questions.map((q, i) => (
@@ -356,9 +373,7 @@ export default function App() {
                   <button onClick={() => setEditingJob(p => ({ ...p, open: !p.open }))} className={`px-3 py-1 rounded-full text-xs font-medium transition ${editingJob.open ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>{editingJob.open ? "진행중" : "마감"}</button>
                 </div>
                 <div className="flex gap-3 pt-2">
-                  {!isNewJob && (
-                    <button onClick={() => setDeleteConfirm(editingJob.id)} className="flex-1 py-2.5 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition text-sm">🗑 공고 삭제</button>
-                  )}
+                  {!isNewJob && <button onClick={() => setDeleteConfirm(editingJob.id)} className="flex-1 py-2.5 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition text-sm">🗑 공고 삭제</button>}
                   <button onClick={saveJob} disabled={!editingJob.title || !editingJob.deadline} className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition disabled:opacity-40 text-sm">저장</button>
                 </div>
               </div>
@@ -369,22 +384,19 @@ export default function App() {
         {/* 삭제 확인 모달 */}
         {deleteConfirm && (
           <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-              <div className="text-center">
-                <div className="text-4xl mb-3">⚠️</div>
-                <h3 className="font-bold text-gray-900 mb-2">공고를 삭제할까요?</h3>
-                <p className="text-sm text-gray-500 mb-5">해당 공고와 관련된 지원자 데이터도 함께 삭제됩니다. 이 작업은 되돌릴 수 없습니다.</p>
-                <div className="flex gap-3">
-                  <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">취소</button>
-                  <button onClick={() => { deleteJob(deleteConfirm); setEditingJob(null); setIsNewJob(false); }} className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700">삭제</button>
-                </div>
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
+              <div className="text-4xl mb-3">⚠️</div>
+              <h3 className="font-bold text-gray-900 mb-2">공고를 삭제할까요?</h3>
+              <p className="text-sm text-gray-500 mb-5">해당 공고와 관련된 지원자 데이터도 함께 삭제됩니다.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">취소</button>
+                <button onClick={() => { deleteJob(deleteConfirm); setEditingJob(null); }} className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700">삭제</button>
               </div>
             </div>
           </div>
         )}
 
         <div className="flex">
-          {/* Sidebar */}
           <div className="w-52 bg-white border-r border-gray-200 min-h-screen p-4 flex-shrink-0">
             <p className="text-xs font-semibold text-gray-400 uppercase mb-3">채용 관리</p>
             {[["kanban", "📊 칸반 보드"], ["applicants", "👥 지원자 목록"], ["jobs", "📝 공고 관리"]].map(([tab, label]) => (
@@ -399,9 +411,7 @@ export default function App() {
             <button onClick={() => { setAdminAuth(false); setView("jobs"); }} className="w-full text-left px-3 py-2 rounded-lg text-xs text-gray-400 hover:bg-gray-100 transition">🔓 로그아웃</button>
           </div>
 
-          {/* Main */}
           <div className="flex-1 p-6 overflow-auto">
-
             {/* 칸반 보드 */}
             {adminTab === "kanban" && (
               <div>
@@ -425,7 +435,9 @@ export default function App() {
                         {getApplicantsByStage(si, jobFilter).map(app => {
                           const job = jobs.find(j => j.id === app.jobId);
                           return (
-                            <div key={app.id} draggable onDragStart={() => setDragging(app.id)} onDragEnd={() => { setDragging(null); setDragOver(null); }}
+                            <div key={app.id} draggable
+                              onDragStart={() => setDragging(app.id)}
+                              onDragEnd={() => { setDragging(null); setDragOver(null); }}
                               onClick={() => { setSelectedApplicant(app); setNewMemo(app.memo); setAiSummary(""); }}
                               className="bg-white rounded-lg p-3 cursor-grab shadow-sm hover:shadow border border-gray-200 hover:border-indigo-300 transition select-none">
                               <div className="flex items-center justify-between">
@@ -442,7 +454,6 @@ export default function App() {
                   ))}
                 </div>
 
-                {/* 지원자 상세 패널 */}
                 {selectedApplicant && (
                   <div className="fixed inset-0 bg-black/30 z-50 flex justify-end" onClick={() => setSelectedApplicant(null)}>
                     <div className="bg-white w-full max-w-md h-full overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -472,6 +483,9 @@ export default function App() {
                             <p><span className="text-gray-400">연락처:</span> {selectedApplicant.phone}</p>
                             <p><span className="text-gray-400">지원일:</span> {selectedApplicant.appliedAt}</p>
                             <p><span className="text-gray-400">포지션:</span> {jobs.find(j => j.id === selectedApplicant.jobId)?.title}</p>
+                            {selectedApplicant.fileUrl && (
+                              <p><span className="text-gray-400">첨부파일:</span> <a href={selectedApplicant.fileUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">📎 파일 보기</a></p>
+                            )}
                           </div>
                         </div>
                         {selectedApplicant.answers?.length > 0 && (
@@ -527,7 +541,7 @@ export default function App() {
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>{["이름", "포지션", "전형 단계", "지원일", "평점", ""].map(h => <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>)}</tr>
+                      <tr>{["이름", "포지션", "전형 단계", "지원일", "파일", ""].map(h => <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>)}</tr>
                     </thead>
                     <tbody>
                       {filteredApplicants.length === 0 && <tr><td colSpan={6} className="text-center py-10 text-gray-400">지원자가 없습니다.</td></tr>}
@@ -537,7 +551,7 @@ export default function App() {
                           <td className="px-4 py-3 text-gray-500">{jobs.find(j => j.id === app.jobId)?.title || "-"}</td>
                           <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs ${STAGE_COLORS[app.stage]}`}>{STAGES[app.stage]}</span></td>
                           <td className="px-4 py-3 text-gray-400">{app.appliedAt}</td>
-                          <td className="px-4 py-3 text-yellow-400">{"★".repeat(app.score)}</td>
+                          <td className="px-4 py-3">{app.fileUrl ? <a href={app.fileUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-indigo-500 text-xs hover:underline">📎 보기</a> : <span className="text-gray-300 text-xs">-</span>}</td>
                           <td className="px-4 py-3 text-indigo-500 text-xs">상세 →</td>
                         </tr>
                       ))}
@@ -552,7 +566,7 @@ export default function App() {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold text-gray-900">공고 관리</h2>
-                  <button onClick={() => { setEditingJob({ ...BLANK_JOB, id: null }); setIsNewJob(true); }} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition">+ 새 공고 등록</button>
+                  <button onClick={() => { setEditingJob({ ...BLANK_JOB }); setIsNewJob(true); }} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition">+ 새 공고 등록</button>
                 </div>
                 <div className="space-y-3">
                   {jobs.length === 0 && <p className="text-center text-gray-400 py-12">등록된 공고가 없습니다.</p>}
