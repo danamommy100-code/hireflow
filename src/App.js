@@ -552,6 +552,9 @@ export default function App() {
                             <button onClick={() => addComment(selectedApplicant.id)} className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm">전송</button>
                           </div>
                         </div>
+                        <div className="pt-2 border-t border-gray-100 mt-2">
+  <button onClick={() => setDeleteApplicantConfirm(selectedApplicant.id)} className="w-full py-2.5 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition text-sm">🗑 지원자 삭제</button>
+</div>
                         <div className="pt-2 border-t border-gray-100">
                           <button onClick={() => setDeleteApplicantConfirm(selectedApplicant.id)} className="w-full py-2.5 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition text-sm">🗑 지원자 삭제</button>
                         </div>
