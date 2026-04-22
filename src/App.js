@@ -91,7 +91,7 @@ export default function App() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (/[^\x00-\x7F]/.test(file.name)) {
+    if if (/[^\u0000-\u007F]/.test(file.name)) {
       alert("⚠️ 파일명을 영문으로 해주세요.\n예: resume.docx");
       e.target.value = "";
       setUploadedFile(null);
