@@ -136,6 +136,12 @@ export default function App() {
     setDeleteConfirm(null);
   };
 
+  const deleteApplicant = (id) => {
+    setApplicants(p => p.filter(a => a.id !== id));
+    setDeleteApplicantConfirm(null);
+    setSelectedApplicant(null);
+  };
+
   const NavBar = () => (
     <nav className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
       <div className="flex items-center gap-2 cursor-pointer" onClick={() => { setView("jobs"); setSubmitted(false); }}>
@@ -268,9 +274,21 @@ export default function App() {
                 </div>
               ))}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">이력서 / 포트폴리오 첨부</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  이력서 / 포트폴리오 첨부
+                  <span className="ml-2 text-red-500 font-bold text-xs">💡 (파일명 꼭 영문으로 기입)</span>
+                </label>
                 <input type="file" accept=".pdf,.doc,.docx,.zip"
-                  onChange={e => setUploadedFile(e.target.files[0])}
+                  onChange={e => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    if (/[^\x00-\x7F]/.test(file.name)) {
+                      alert("⚠️ 파일명을 영문으로 해주세요.\n예: resume.docx");
+                      e.target.value = "";
+                      return;
+                    }
+                    setUploadedFile(file);
+                  }}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400" />
                 {uploadedFile && <p className="text-xs text-indigo-600 mt-1">📎 {uploadedFile.name}</p>}
                 <p className="text-xs text-gray-400 mt-1">PDF, DOC, DOCX, ZIP · 최대 50MB</p>
@@ -381,7 +399,20 @@ export default function App() {
           </div>
         )}
 
-        {/* 삭제 확인 모달 */}
+        {/* 지원자 삭제 확인 모달 */}
+        {deleteApplicantConfirm && (
+          <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
+              <div className="text-4xl mb-3">🗑️</div>
+              <h3 className="font-bold text-gray-900 mb-2">지원자를 삭제할까요?</h3>
+              <p className="text-sm text-gray-500 mb-5">삭제된 지원자는 복구할 수 없습니다.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteApplicantConfirm(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">취소</button>
+                <button onClick={() => deleteApplicant(deleteApplicantConfirm)} className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700">삭제</button>
+              </div>
+            </div>
+          </div>
+        )}
         {deleteConfirm && (
           <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
@@ -520,6 +551,9 @@ export default function App() {
                             <input value={newComment} onChange={e => setNewComment(e.target.value)} onKeyDown={e => e.key === "Enter" && addComment(selectedApplicant.id)} placeholder="의견을 남겨주세요..." className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400" />
                             <button onClick={() => addComment(selectedApplicant.id)} className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm">전송</button>
                           </div>
+                        </div>
+                        <div className="pt-2 border-t border-gray-100">
+                          <button onClick={() => setDeleteApplicantConfirm(selectedApplicant.id)} className="w-full py-2.5 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition text-sm">🗑 지원자 삭제</button>
                         </div>
                       </div>
                     </div>
